@@ -46,7 +46,12 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 app.mount("/outputs", StaticFiles(directory=OUTPUT_DIR), name="outputs")
 
 # Load the YOLO fish detector once at startup
-detector = FishDetector(model_path="best.pt")
+detector = None
+
+@app.on_event("startup")
+def load_model():
+    global detector
+    detector = FishDetector(model_path="best.pt")
 
 # In-memory detection history (resets on server restart)
 detection_history: List[dict] = []
