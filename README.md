@@ -1,4 +1,4 @@
-# 🐟 AquaDetect — AI Fish Detection Web App
+# 🐟 AquaDetect — AI Fish Detection Web App 
 
 A complete, production-ready web application for detecting fish in images using a custom YOLO model.
 
