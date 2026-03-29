@@ -51,7 +51,9 @@ detector = None
 @app.on_event("startup")
 def load_model():
     global detector
+    print("Loading YOLO model...")
     detector = FishDetector(model_path="best.pt")
+    print("Model loaded successfully")
 
 # In-memory detection history (resets on server restart)
 detection_history: List[dict] = []
