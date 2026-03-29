@@ -3,10 +3,6 @@ venv/
 __pycache__/
 *.pyc
 
-# ML models
-*.pt
-*.pth
-
 # runtime folders
 uploads/
 outputs/
