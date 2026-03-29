@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="ocean">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AquaDetect — Marine AI Detection System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <!-- Cropper.js CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- THREE.JS ANIMATED OCEAN CANVAS -->
+  <canvas id="threeCanvas" class="three-canvas"></canvas>
+
+  <div class="video-bg-wrapper">
+    <video id="bgVideo" autoplay loop muted playsinline class="video-bg">
+      <source src="assets/videos/background_ocean.mp4" type="video/mp4" />
+    </video>
+    <div class="video-overlay"></div>
+  </div>
+
+  <div class="hud-grid" aria-hidden="true"></div>
+  <div class="scanlines" aria-hidden="true"></div>
+  <div class="det-tooltip" id="detTooltip"></div>
+
+
+  <!-- ════════════════════════════════════════════════════════
+       SIDEBAR
+  ════════════════════════════════════════════════════════ -->
+  <aside class="sidebar" id="sidebar">
+
+    <div class="sidebar-logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 44 44" fill="none">
+          <path d="M4 22C10 10 22 5 40 22C22 34 10 36 4 22Z" fill="currentColor" opacity="0.9"/>
+          <path d="M40 14L46 22L40 30" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.6"/>
+          <circle cx="33" cy="18" r="3" fill="white" opacity="0.9"/>
+          <circle cx="33" cy="18" r="1.2" fill="var(--accent-1)"/>
+        </svg>
+      </div>
+      <div class="logo-text-wrap">
+        <span class="logo-main">AQUA<span class="logo-accent">DETECT</span></span>
+        <span class="logo-sub">MARINE AI v2.0</span>
+      </div>
+    </div>
+
+    <div class="sidebar-status">
+      <div class="status-row">
+        <span class="status-dot" id="statusDot"></span>
+        <span class="status-text" id="statusText">Connecting...</span>
+      </div>
+      <div class="status-bar-track"><div class="status-bar-fill" id="statusBarFill" style="width:0%"></div></div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <button class="nav-item active" data-view="detect" onclick="switchView('detect')">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/><circle cx="11" cy="11" r="3"/></svg>
+        </span>
+        <span class="nav-label">Detect</span>
+        <span class="nav-pip"></span>
+      </button>
+      <button class="nav-item" data-view="dashboard" onclick="switchView('dashboard')">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        </span>
+        <span class="nav-label">Dashboard</span>
+        <span class="nav-pip"></span>
+      </button>
+      <button class="nav-item" data-view="history" onclick="switchView('history')">
+        <span class="nav-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
+        </span>
+        <span class="nav-label">History</span>
+        <span class="nav-pip"></span>
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="theme-block">
+        <span class="block-label">VISUAL MODE</span>
+        <div class="theme-btns">
+          <button class="theme-btn active" data-theme="ocean" onclick="setTheme('ocean')" title="Ocean">🌊 <span>Ocean</span></button>
+          <button class="theme-btn" data-theme="dark" onclick="setTheme('dark')" title="Void">🌑 <span>Void</span></button>
+          <button class="theme-btn" data-theme="abyss" onclick="setTheme('abyss')" title="Abyss">🐋 <span>Abyss</span></button>
+        </div>
+      </div>
+    </div>
+
+  </aside>
+
+
+  <!-- ════════════════════════════════════════════════════════
+       MAIN CONTENT
+  ════════════════════════════════════════════════════════ -->
+  <main class="main-content">
+
+    <!-- ── DETECT VIEW ─────────────────────────────────── -->
+    <section class="view active" id="view-detect">
+      <header class="view-header">
+        <div>
+          <div class="view-tag">DETECTION SYSTEM</div>
+          <h1 class="view-title">Marine Life Scanner</h1>
+          <p class="view-subtitle">Upload images to identify fish species using advanced AI</p>
+        </div>
+        <div class="header-stats">
+          <div class="hstat"><span class="hstat-val" id="hsTotalVal">0</span><span class="hstat-lbl">Processed</span></div>
+          <div class="hstat glow"><span class="hstat-val" id="hsFishVal">0</span><span class="hstat-lbl">Fish Found</span></div>
+        </div>
+      </header>
+
+      <div class="detect-grid">
+
+        <!-- Upload + Insights column -->
+        <div class="detect-col-left">
+
+          <!-- Upload Panel -->
+          <div class="glass-panel upload-panel" id="uploadPanel">
+            <div class="gc tl"></div><div class="gc tr"></div><div class="gc bl"></div><div class="gc br"></div>
+            <div class="panel-header">
+              <span class="panel-tag">INPUT</span>
+              <h2 class="panel-title">Image Upload</h2>
+            </div>
+
+            <div class="drop-zone" id="dropZone"
+              ondragover="handleDragOver(event)"
+              ondragleave="handleDragLeave(event)"
+              ondrop="handleDrop(event)"
+              onclick="document.getElementById('fileInput').click()">
+
+              <div class="drop-sonar">
+                <div class="sonar-ring sr1"></div>
+                <div class="sonar-ring sr2"></div>
+                <div class="sonar-ring sr3"></div>
+                <div class="drop-fish-svg">
+                  <svg viewBox="0 0 70 46" fill="none">
+                    <path d="M4 23C12 9 30 3 60 23C30 37 12 39 4 23Z" fill="currentColor"/>
+                    <path d="M60 13L70 23L60 33Z" fill="currentColor" opacity="0.6"/>
+                    <circle cx="50" cy="18" r="4" fill="white" opacity="0.9"/>
+                    <circle cx="50" cy="18" r="1.8" fill="var(--accent-1)"/>
+                  </svg>
+                </div>
+              </div>
+
+              <p class="drop-title">Drop Images Here</p>
+              <p class="drop-sub">PNG · JPG · WEBP · Multiple files supported</p>
+              <div class="btn-browse">
+                <svg viewBox="0 0 20 20" fill="currentColor" width="13"><path d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"/></svg>
+                Browse Files
+              </div>
+              <input type="file" id="fileInput" accept="image/*" multiple hidden onchange="handleFileSelect(event)" />
+            </div>
+
+            <div class="queue-section" id="queueSection" style="display:none">
+              <div class="queue-head">
+                <span class="queue-count" id="queueCount">0 images</span>
+                <button class="btn-text-danger" onclick="clearQueue()">Clear all</button>
+              </div>
+              <!-- Queue items with View / Crop / Remove actions -->
+              <div class="queue-grid" id="queueGrid"></div>
+              <button class="btn-scan" id="btnScan" onclick="runDetection()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16"><circle cx="12" cy="12" r="3"/><path d="M3 12h2M19 12h2M12 3v2M12 19v2"/></svg>
+                Initiate Scan
+              </button>
+            </div>
+          </div>
+
+          <!-- AI Insights Panel -->
+          <div class="glass-panel ai-panel" id="aiPanel" style="display:none">
+            <div class="gc tl"></div><div class="gc tr"></div><div class="gc bl"></div><div class="gc br"></div>
+            <div class="panel-header">
+              <span class="panel-tag ai-tag">AI INTELLIGENCE</span>
+              <h2 class="panel-title" id="aiPanelTitle">Species Analysis</h2>
+            </div>
+            <div class="ai-body">
+              <div class="ai-species-row">
+                <div class="ai-species-emoji" id="aiEmoji">🐟</div>
+                <div class="ai-species-info">
+                  <div class="ai-species-name" id="aiSpeciesName">—</div>
+                  <div class="ai-species-sci" id="aiSpeciesSci">Awaiting detection</div>
+                </div>
+                <div class="ai-conf-badge" id="aiConfBadge">—</div>
+              </div>
+              <div class="ai-metrics" id="aiMetrics"></div>
+              <div class="ai-fact-card">
+                <div class="ai-fact-label">DID YOU KNOW?</div>
+                <p class="ai-fact-text" id="aiFact">Scan an image to reveal marine intelligence.</p>
+              </div>
+            </div>
+            <button class="btn-report" id="btnReport" onclick="generateReport()" style="display:none">
+              <svg viewBox="0 0 20 20" fill="currentColor" width="14"><path d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"/></svg>
+              Export Detection Report
+            </button>
+          </div>
+
+        </div><!-- /detect-col-left -->
+
+        <!-- Results column — clickable gallery grid -->
+        <div class="detect-col-right">
+          <div class="glass-panel results-panel" id="resultsPanel">
+            <div class="gc tl"></div><div class="gc tr"></div><div class="gc bl"></div><div class="gc br"></div>
+            <div class="panel-header">
+              <span class="panel-tag">OUTPUT</span>
+              <h2 class="panel-title">Detection Results</h2>
+              <span class="result-badge" id="resultBadge" style="display:none">0</span>
+              <button class="btn-clear-results" id="btnClearResults" onclick="clearResults()" style="display:none" title="Clear all detection results">
+                <svg viewBox="0 0 20 20" fill="currentColor" width="11"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+                Clear Results
+              </button>
+            </div>
+
+            <div class="results-empty" id="resultsEmpty">
+              <div class="empty-rings">
+                <div class="er er1"></div><div class="er er2"></div><div class="er er3"></div>
+              </div>
+              <svg viewBox="0 0 90 58" fill="none" class="empty-fish-svg">
+                <path d="M4 29C14 12 34 4 72 29C34 44 14 46 4 29Z" fill="currentColor" opacity="0.18"/>
+                <path d="M72 17L84 29L72 41Z" fill="currentColor" opacity="0.12"/>
+                <circle cx="62" cy="23" r="5" fill="currentColor" opacity="0.18"/>
+              </svg>
+              <p class="empty-title" id="emptyTitle">Awaiting Scan</p>
+              <p class="empty-sub" id="emptySub">Upload images and run detection</p>
+            </div>
+
+            <!-- Responsive thumbnail gallery (replaces old list) -->
+            <div class="results-gallery" id="resultsList" style="display:none"></div>
+          </div>
+        </div>
+
+      </div><!-- /detect-grid -->
+
+      <!-- ── Per-image Before / After Comparison ── -->
+      <div class="glass-panel comp-panel" id="compPanel" style="display:none">
+        <div class="gc tl"></div><div class="gc tr"></div><div class="gc bl"></div><div class="gc br"></div>
+        <div class="panel-header">
+          <span class="panel-tag">ANALYSIS</span>
+          <h2 class="panel-title">Before / After Comparison</h2>
+          <span class="panel-hint">← Drag handle →</span>
+        </div>
+        <!-- One slider per result, dynamically populated -->
+        <div class="comp-sliders-list" id="compSlidersList"></div>
+      </div>
+
+    </section>
+
+
+    <!-- ── DASHBOARD VIEW ──────────────────────────────── -->
+    <section class="view" id="view-dashboard">
+      <header class="view-header">
+        <div>
+          <div class="view-tag">ANALYTICS</div>
+          <h1 class="view-title">Intelligence Dashboard</h1>
+          <p class="view-subtitle">Real-time detection statistics and analysis</p>
+        </div>
+        <button class="btn-ghost" onclick="loadDashboard()">
+          <svg viewBox="0 0 20 20" fill="currentColor" width="14"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/></svg>
+          Refresh
+        </button>
+      </header>
+
+      <div class="stats-row">
+        <div class="stat-card glass-panel">
+          <div class="gc tl"></div><div class="gc tr"></div>
+          <div class="sc-icon">📊</div>
+          <div class="sc-num" id="scTotal">0</div>
+          <div class="sc-lbl">Total Scanned</div>
+        </div>
+        <div class="stat-card glass-panel sc-fish">
+          <div class="gc tl"></div><div class="gc tr"></div>
+          <div class="sc-icon">🐟</div>
+          <div class="sc-num" id="scFish">0</div>
+          <div class="sc-lbl">Fish Detected</div>
+        </div>
+        <div class="stat-card glass-panel sc-unknown">
+          <div class="gc tl"></div><div class="gc tr"></div>
+          <div class="sc-icon">❓</div>
+          <div class="sc-num" id="scUnknown">0</div>
+          <div class="sc-lbl">Unknown Species</div>
+        </div>
+        <div class="stat-card glass-panel sc-empty">
+          <div class="gc tl"></div><div class="gc tr"></div>
+          <div class="sc-icon">🔍</div>
+          <div class="sc-num" id="scEmpty">0</div>
+          <div class="sc-lbl">No Detection</div>
+        </div>
+      </div>
+
+      <div class="charts-row">
+        <div class="glass-panel chart-panel">
+          <div class="gc tl"></div><div class="gc tr"></div>
+          <div class="panel-header"><span class="panel-tag">DISTRIBUTION</span><h2 class="panel-title">Species Breakdown</h2></div>
+          <div class="chart-box"><canvas id="chartDonut"></canvas></div>
+        </div>
+        <div class="glass-panel chart-panel chart-wide">
+          <div class="gc tl"></div><div class="gc tr"></div>
+          <div class="panel-header"><span class="panel-tag">ACTIVITY</span><h2 class="panel-title">Detection Timeline</h2></div>
+          <div class="chart-box"><canvas id="chartBar"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ── HISTORY VIEW ──────────────────────────────── -->
+    <section class="view" id="view-history">
+      <header class="view-header">
+        <div>
+          <div class="view-tag">LOG</div>
+          <h1 class="view-title">Detection History</h1>
+          <p class="view-subtitle">Chronological record of all marine scans</p>
+        </div>
+        <button class="btn-ghost danger" onclick="clearHistory()">
+          <svg viewBox="0 0 20 20" fill="currentColor" width="14"><path d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9z"/></svg>
+          Clear All
+        </button>
+      </header>
+      <div class="history-wrap" id="historyWrap">
+        <div class="history-empty"><p>No scans logged yet.<br/>Run your first detection to begin.</p></div>
+      </div>
+    </section>
+
+  </main>
+
+
+  <!-- ════════════════════════════════════════════════════════
+       HISTORY DETAILS MODAL
+  ════════════════════════════════════════════════════════ -->
+  <div id="historyModalOverlay" class="history-modal-overlay" style="display:none" onclick="closeHistoryModal()">
+    <div class="history-modal" onclick="event.stopPropagation()">
+
+      <!-- Header -->
+      <div class="history-modal-header">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="panel-tag">HISTORY</span>
+          <span class="history-modal-title">Detection Details</span>
+        </div>
+        <button class="lb-ctrl-btn lb-close-btn" onclick="closeHistoryModal()" title="Close (Esc)">
+          <svg viewBox="0 0 20 20" fill="currentColor" width="14"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+        </button>
+      </div>
+
+      <!-- Scrollable body -->
+      <div class="history-modal-body">
+
+        <!-- Detection image -->
+        <div class="hm-img-wrap" id="hmImgWrap">
+          <img id="hmImg" alt="Detection result" />
+          <div class="hm-no-img" id="hmNoImg" style="display:none">
+            <span style="font-size:2.5rem;opacity:0.3">🔍</span>
+            <span style="font-size:0.78rem;color:var(--txt3)">No annotated image available</span>
+          </div>
+          <span class="result-status-badge" id="hmBadge"></span>
+        </div>
+
+        <!-- Detection metadata -->
+        <div class="hm-section">
+          <div class="hm-section-label">DETECTION INFORMATION</div>
+          <div class="hm-meta-grid">
+            <div class="hm-meta-row">
+              <span class="hm-meta-key">Fish</span>
+              <span class="hm-meta-val" id="hmSpecies">—</span>
+            </div>
+            <div class="hm-meta-row">
+              <span class="hm-meta-key">Fish Count</span>
+              <span class="hm-meta-val" id="hmCount">—</span>
+            </div>
+            <div class="hm-meta-row">
+              <span class="hm-meta-key">Image</span>
+              <span class="hm-meta-val" id="hmFilename">—</span>
+            </div>
+            <div class="hm-meta-row">
+              <span class="hm-meta-key">Detected at</span>
+              <span class="hm-meta-val" id="hmTimestamp">—</span>
+            </div>
+            <div class="hm-meta-row">
+              <span class="hm-meta-key">Status</span>
+              <span class="hm-meta-val" id="hmStatus">—</span>
+            </div>
+          </div>
+          <div class="hm-message" id="hmMessage"></div>
+        </div>
+
+        <!-- Fish Fact -->
+        <div class="hm-section">
+          <div class="hm-section-label">FISH FACT</div>
+          <div class="hm-fact-card">
+            <div class="ai-fact-label">DID YOU KNOW?</div>
+            <p class="ai-fact-text" id="hmFact">Loading...</p>
+          </div>
+        </div>
+
+      </div><!-- /history-modal-body -->
+    </div>
+  </div>
+
+
+  <!-- ════════════════════════════════════════════════════════
+       RADAR OVERLAY
+  ════════════════════════════════════════════════════════ -->
+  <div class="radar-overlay" id="radarOverlay" style="display:none">
+    <div class="radar-card">
+      <div class="rc tl"></div><div class="rc tr"></div><div class="rc bl"></div><div class="rc br"></div>
+      <canvas id="radarCanvas" width="260" height="260"></canvas>
+      <div class="radar-info">
+        <div class="radar-title">SCANNING</div>
+        <p class="radar-sub" id="radarSub">Analysing marine biometrics...</p>
+        <div class="radar-prog-track"><div class="radar-prog-fill" id="radarProgFill"></div></div>
+        <div class="radar-filename" id="radarFileName"></div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ════════════════════════════════════════════════════════
+       LIGHTBOX MODAL — Full-res detection viewer
+       Keyboard: ← → navigate · +/- zoom · Esc close
+  ════════════════════════════════════════════════════════ -->
+  <div id="lightboxOverlay" class="lightbox-overlay" style="display:none" onclick="closeLightbox()">
+    <div class="lightbox-container" onclick="event.stopPropagation()">
+
+      <div class="lightbox-header">
+        <div style="display:flex;align-items:center;gap:12px">
+          <span class="panel-tag">DETECTION VIEWER</span>
+          <span class="lightbox-counter" id="lbCounter">1 / 1</span>
+        </div>
+        <div class="lightbox-zoom-controls">
+          <button class="lb-ctrl-btn" onclick="zoomLightbox(-0.25)" title="Zoom Out (-)">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="14"><path fill-rule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/></svg>
+          </button>
+          <button class="lb-ctrl-btn" onclick="resetLightboxZoom()" title="Reset Zoom">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="14"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/></svg>
+          </button>
+          <button class="lb-ctrl-btn" onclick="zoomLightbox(0.25)" title="Zoom In (+)">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="14"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
+          </button>
+          <button class="lb-ctrl-btn lb-close-btn" onclick="closeLightbox()" title="Close (Esc)">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="14"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="lightbox-img-wrap" id="lbImgWrap">
+        <img id="lbImg" alt="Detection result" draggable="false" onclick="toggleLightboxZoom()" />
+      </div>
+
+      <div class="lightbox-footer" id="lbFooter">
+        <div class="lb-footer-inner">
+          <span class="lb-footer-fname" id="lbFname">—</span>
+          <div class="lb-footer-detections" id="lbDetections"></div>
+        </div>
+      </div>
+
+      <button class="lightbox-nav lb-prev" id="lbPrev" onclick="navLightbox(-1)" title="Previous (←)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="22"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <button class="lightbox-nav lb-next" id="lbNext" onclick="navLightbox(1)" title="Next (→)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="22"><path d="M9 18l6-6-6-6"/></svg>
+      </button>
+
+    </div>
+  </div>
+
+
+  <!-- ════════════════════════════════════════════════════════
+       CROPPER MODAL — Crop before detection
+  ════════════════════════════════════════════════════════ -->
+  <div id="cropperOverlay" class="cropper-overlay" style="display:none">
+    <div class="cropper-modal">
+
+      <div class="cropper-modal-header">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="panel-tag">CROP TOOL</span>
+          <span style="font-family:'Orbitron',monospace;font-size:0.85rem;font-weight:700;color:var(--txt)">Select Region</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="cropper-hint">Drag to crop · Scroll to zoom</span>
+          <button class="lb-ctrl-btn lb-close-btn" onclick="closeCropper()" title="Cancel">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="14"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="cropper-img-container">
+        <img id="cropperImg" alt="Crop this image" />
+      </div>
+
+      <div class="cropper-modal-footer">
+        <div class="cropper-tools">
+          <button class="lb-ctrl-btn" onclick="cropperRotate(-90)" title="Rotate Left">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="14"><path fill-rule="evenodd" d="M9.707 2.293a1 1 0 010 1.414L7.414 6H13a5 5 0 010 10H5a1 1 0 110-2h8a3 3 0 000-6H7.414l2.293 2.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+          </button>
+          <button class="lb-ctrl-btn" onclick="cropperRotate(90)" title="Rotate Right">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="14"><path fill-rule="evenodd" d="M10.293 2.293a1 1 0 010 1.414L12.586 6H7a5 5 0 000 10h8a1 1 0 110 2H7A7 7 0 117 4h5.586l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+          </button>
+          <button class="lb-ctrl-btn" onclick="cropperFlipH()" title="Flip Horizontal">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="14"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/></svg>
+          </button>
+          <button class="lb-ctrl-btn" onclick="cropperReset()" title="Reset">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="14"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/></svg>
+          </button>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button class="btn-ghost" onclick="closeCropper()">Cancel</button>
+          <button class="btn-scan" style="width:auto;padding:10px 28px;font-size:0.78rem" onclick="applyCrop()">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="13"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+            Apply Crop
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- Scripts — order matters -->
+  <script src="js/three-bg.js"></script>
+  <script src="js/radar.js"></script>
+  <script src="js/report.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>

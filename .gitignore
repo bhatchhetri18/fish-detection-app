@@ -1,0 +1,19 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# ML models
+*.pt
+*.pth
+
+# runtime folders
+uploads/
+outputs/
+
+# frontend
+frontend/venv/
+
+# system
+.DS_Store
+Thumbs.db
